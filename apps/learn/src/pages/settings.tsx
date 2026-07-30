@@ -10,7 +10,11 @@ const SettingsPage: NextPage = () => {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState('')
+    const [openReelsReady, setOpenReelsReady] = useState<boolean | null>(null)
     const dashboardBaseUrl = (process.env.NEXT_PUBLIC_HOVOD_DASHBOARD_URL || 'http://localhost:3003').replace(/\/$/, '')
+    const openReelsUiUrl = process.env.NEXT_PUBLIC_OPENREELS_UI_URL || ''
+    const defaultProvider = process.env.NEXT_PUBLIC_OPENREELS_DEFAULT_PROVIDER || process.env.OPENREELS_DEFAULT_PROVIDER || 'google'
+    const defaultTts = process.env.NEXT_PUBLIC_OPENREELS_DEFAULT_TTS || process.env.OPENREELS_DEFAULT_TTS || 'elevenlabs'
 
     const deepLinks = useMemo(
         () => [
@@ -28,6 +32,13 @@ const SettingsPage: NextPage = () => {
                 if (payload?.data) setSettings(payload.data)
             })
             .finally(() => setLoading(false))
+    }, [])
+
+    useEffect(() => {
+        fetch('/api/generate/health')
+            .then((response) => response.json())
+            .then((payload) => setOpenReelsReady(Boolean(payload?.data?.ok)))
+            .catch(() => setOpenReelsReady(false))
     }, [])
 
     const save = async () => {
@@ -159,6 +170,30 @@ const SettingsPage: NextPage = () => {
                             {saving ? 'Saving...' : 'Save settings'}
                         </button>
                         {message && <p style={{ marginTop: 8 }}>{message}</p>}
+                    </section>
+
+                    <section style={{ background: '#18181b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                        <h2 style={{ fontSize: 16, marginTop: 0 }}>OpenReels integration</h2>
+                        <p style={{ marginTop: 0, color: openReelsReady ? '#86efac' : '#fca5a5' }}>
+                            Connection status: {openReelsReady === null ? 'Checking...' : openReelsReady ? 'Connected' : 'Unavailable'}
+                        </p>
+                        <p style={{ color: '#a1a1aa', margin: '6px 0' }}>Default provider: {defaultProvider}</p>
+                        <p style={{ color: '#a1a1aa', margin: '6px 0 12px' }}>Default TTS: {defaultTts}</p>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                            <Link href="/#generate-short" style={{ color: '#fff', background: '#27272a', padding: '8px 12px', borderRadius: 999 }}>
+                                Generation history
+                            </Link>
+                            {openReelsUiUrl && (
+                                <a
+                                    href={openReelsUiUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: '#fff', background: '#27272a', padding: '8px 12px', borderRadius: 999 }}
+                                >
+                                    Open OpenReels UI
+                                </a>
+                            )}
+                        </div>
                     </section>
 
                     <section style={{ background: '#18181b', borderRadius: 12, padding: 16 }}>

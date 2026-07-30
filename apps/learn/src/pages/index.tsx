@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { DASHBOARD_PATHS } from '@hovod/contracts'
 import DesktopView from '../components/desktopView'
+import GenerateShort from '../components/generateShort'
 import Upload from '../components/upload'
 import VideoComponent from '../components/video/index'
 import styles from './index.module.css'
@@ -40,6 +41,8 @@ const Home: NextPage = () => {
                 <DesktopView />
             </div>
 
+            <GenerateShort onPublished={() => void mutate()} />
+
             <div className={styles.app__videos}>
                 {videos.map((video) => {
                     return <VideoComponent key={video.videoId} video={video} mutate={mutate} />
@@ -47,6 +50,9 @@ const Home: NextPage = () => {
             </div>
 
             <div className={styles.dashboard__links}>
+                <Link href="#generate-short" className={styles.dashboard__link}>
+                    Generate
+                </Link>
                 <Link href="/upload" className={styles.dashboard__link}>
                     Upload
                 </Link>

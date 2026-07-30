@@ -178,11 +178,16 @@ Hovod can be paired with [OpenReels](https://github.com/tsensei/OpenReels) for a
    ```bash
    docker compose up -d --build
    ```
-3. Submit an OpenReels job (UI or API).
-4. When the job writes `final.mp4`, the `openreels-hovod-publisher` service automatically:
+3. In Learn (`http://localhost:3004`), use **Generate short** (topic + optional provider), or submit an OpenReels job directly (UI/API).
+4. When the job completes and writes `final.mp4`, the `openreels-hovod-publisher` service automatically:
    - creates a Hovod asset
    - uploads the MP4
    - triggers processing (HLS transcoding)
+   - stores `openreelsJobId -> hovodAssetId` mapping for `/api/generate/:jobId`
+
+The Learn API exposes:
+- `POST /api/generate` → create OpenReels job and return `{ jobId }`
+- `GET /api/generate/:jobId` → proxy OpenReels status/progress and include `hovodAssetId` once published
 
 Watch publisher logs:
 

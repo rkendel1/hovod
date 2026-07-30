@@ -141,10 +141,14 @@ services:
       HOVOD_BASE_URL: http://api:3000
       HOVOD_API_KEY: ${HOVOD_API_KEY:-}
       OPENREELS_OUTPUT_DIR: /output
+      OPENREELS_API_URL: http://openreels-api:3000
+      MAPPINGS_FILE: /data/openreels-job-map.json
       POLL_INTERVAL_MS: 15000
       AUTO_PROCESS: true
+      PORT: 3201
     volumes:
       - openreels-output:/output:ro
+      - openreels-publisher-data:/data
     depends_on:
       - openreels-api
       - api
@@ -156,6 +160,8 @@ services:
     environment:
       HOVOD_API_BASE_URL: http://api:3000
       HOVOD_API_KEY: ${HOVOD_API_KEY}
+      OPENREELS_API_URL: http://openreels-api:3000
+      OPENREELS_PUBLISHER_URL: http://openreels-hovod-publisher:3201
       NEXT_PUBLIC_HOVOD_DASHBOARD_URL: ${NEXT_PUBLIC_HOVOD_DASHBOARD_URL:-http://localhost:3003}
     depends_on:
       api:
@@ -170,3 +176,4 @@ volumes:
   openreels-redis-data:
   openreels-output:
   openreels-jobs:
+  openreels-publisher-data:

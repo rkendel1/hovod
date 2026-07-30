@@ -256,6 +256,7 @@ docker compose up -d --build
 The compose stack also supports a co-located OpenReels pipeline:
 - `openreels-api` + `openreels-worker` generate vertical shorts
 - `openreels-hovod-publisher` watches OpenReels output and publishes finished `final.mp4` files to Hovod `/v1/assets`, then starts processing
+- Learn adds a seamless bridge: `POST /api/generate` and `GET /api/generate/:jobId` (status + eventual `hovodAssetId`)
 
 Quick start:
 
