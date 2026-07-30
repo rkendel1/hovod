@@ -165,7 +165,23 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Dashboard: **http://localhost:3003** | API: **http://localhost:3002**
+Dashboard: **http://localhost:3003** | API: **http://localhost:3002** | Learn (Next.js): **http://localhost:3004**
+
+Set `HOVOD_API_KEY` in `.env` so the Learn app can call Hovod via the internal Docker network.
+
+### Fly.io (Hovod + Learn)
+
+Deploy Hovod first, then deploy the Learn Next.js app that points to Hovod:
+
+```bash
+# 1) Deploy Hovod backend
+fly deploy -c fly.hovod.toml
+
+# 2) Deploy Learn (this is the app `fly open` should open)
+fly secrets set HOVOD_API_KEY=mk_live_... -c fly.toml
+fly deploy -c fly.toml
+fly open -c fly.toml
+```
 
 ### One-Click Deploy
 
