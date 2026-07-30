@@ -59,6 +59,9 @@ const Home: NextPage = () => {
                 <Link href="/settings" className={styles.dashboard__link}>
                     Settings
                 </Link>
+                <Link href="/proposals" className={styles.dashboard__link}>
+                    Proposals
+                </Link>
                 <a
                     href={`${dashboardBaseUrl}${DASHBOARD_PATHS.analytics}`}
                     target="_blank"

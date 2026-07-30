@@ -20,6 +20,12 @@ services:
     ports:
       - "6379:6379"
 
+  proposal-redis:
+    image: redis:7-alpine
+    command: redis-server --bind 0.0.0.0 --loglevel warning
+    ports:
+      - "6380:6379"
+
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
@@ -151,6 +157,52 @@ services:
       - openreels-publisher-data:/data
     depends_on:
       - openreels-api
+      - api
+
+  source-discovery:
+    build:
+      context: ./services/source-discovery
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+      - .env.proposals
+    environment:
+      REDIS_URL: redis://proposal-redis:6379
+      DATABASE_URL: ${DATABASE_URL}
+      DISCOVERY_INTERVAL_HOURS: ${DISCOVERY_INTERVAL_HOURS:-6}
+      MAX_CANDIDATES_PER_RUN: ${MAX_CANDIDATES_PER_RUN:-50}
+    depends_on:
+      - proposal-redis
+      - api
+
+  source-analyzer:
+    build:
+      context: ./services/source-analyzer
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+      - .env.proposals
+    environment:
+      REDIS_URL: redis://proposal-redis:6379
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - proposal-redis
+      - api
+
+  proposal-generator:
+    build:
+      context: ./services/proposal-generator
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+      - .env.proposals
+    environment:
+      REDIS_URL: redis://proposal-redis:6379
+      DATABASE_URL: ${DATABASE_URL}
+      MIN_QUALITY_SCORE: ${MIN_QUALITY_SCORE:-0.65}
+      AUTO_APPROVE_ABOVE: ${AUTO_APPROVE_ABOVE:-0}
+    depends_on:
+      - proposal-redis
       - api
 
   learn:

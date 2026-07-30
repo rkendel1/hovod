@@ -195,6 +195,16 @@ Watch publisher logs:
 docker compose logs -f openreels-hovod-publisher
 ```
 
+### Autonomous source discovery + proposal workers
+
+Hovod now includes an upstream proposal pipeline for Learn:
+
+- `source-discovery` (discover queue) finds candidates (YouTube + podcast MVP)
+- `source-analyzer` (analyze queue) creates summary, key messages, categories, and quality signals
+- `proposal-generator` (propose queue) stores structured pending proposals with script + imagery direction
+
+To enable proposal-specific settings, copy `.env.proposals.example` to `.env.proposals` and edit values. The Learn app includes a proposal inbox at `http://localhost:3004/proposals` for approve/reject review. Approving a proposal creates an OpenReels job, then the existing OpenReels → Hovod publisher flow handles delivery into your library.
+
 ### Fly.io (Hovod + Learn)
 
 Deploy Hovod first, then deploy the Learn Next.js app that points to Hovod:

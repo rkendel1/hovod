@@ -306,6 +306,62 @@ export async function runMigrations() {
     )
   `);
 
+  /* ─── Proposal pipeline tables ─────────────────────────── */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS proposal_candidates (
+      id VARCHAR(36) PRIMARY KEY,
+      source_type VARCHAR(32) NOT NULL,
+      canonical_key VARCHAR(512) NOT NULL,
+      canonical_id VARCHAR(255) NULL,
+      url VARCHAR(2048) NOT NULL,
+      title VARCHAR(512) NOT NULL,
+      raw_meta JSON NULL,
+      analysis JSON NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'discovered',
+      error_message VARCHAR(1024) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE INDEX uq_pc_canonical_key (canonical_key),
+      INDEX idx_pc_source_type (source_type),
+      INDEX idx_pc_status (status)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS proposals (
+      id VARCHAR(36) PRIMARY KEY,
+      candidate_id VARCHAR(36) NOT NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'pending',
+      source JSON NOT NULL,
+      summary TEXT NOT NULL,
+      key_messages JSON NOT NULL,
+      target_audience VARCHAR(255) NULL,
+      difficulty VARCHAR(32) NOT NULL,
+      proposed_title VARCHAR(255) NOT NULL,
+      script_outline TEXT NOT NULL,
+      full_script_draft TEXT NULL,
+      visual_direction JSON NOT NULL,
+      categories JSON NOT NULL,
+      tags JSON NOT NULL,
+      topics JSON NOT NULL,
+      quality_score INT NOT NULL,
+      quality_rationale TEXT NOT NULL,
+      source_quality_signals JSON NOT NULL,
+      openreels_job_id VARCHAR(64) NULL,
+      hovod_asset_id VARCHAR(36) NULL,
+      reviewed_at TIMESTAMP NULL,
+      reviewed_by VARCHAR(255) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE INDEX uq_proposals_candidate_id (candidate_id),
+      INDEX idx_proposals_status (status),
+      INDEX idx_proposals_openreels_job_id (openreels_job_id),
+      CONSTRAINT fk_proposals_candidate FOREIGN KEY (candidate_id) REFERENCES proposal_candidates(id) ON DELETE CASCADE
+    )
+  `);
+
 }
 
 /**

@@ -1,4 +1,4 @@
-import { int, json, mysqlTable, text, timestamp, varchar, index } from 'drizzle-orm/mysql-core';
+import { int, json, mysqlTable, text, timestamp, varchar, index, uniqueIndex } from 'drizzle-orm/mysql-core';
 
 export const assets = mysqlTable('assets', {
   id: varchar('id', { length: 36 }).primaryKey(),
@@ -174,6 +174,60 @@ export const reactions = mysqlTable('reactions', {
 }, (table) => ({
   playbackEmojiIdx: index('idx_reactions_playback_emoji').on(table.playbackId, table.emoji),
   assetIdIdx: index('idx_reactions_asset_id').on(table.assetId),
+}));
+
+/* ─── Proposal pipeline tables ───────────────────────────── */
+
+export const proposalCandidates = mysqlTable('proposal_candidates', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  sourceType: varchar('source_type', { length: 32 }).notNull(),
+  canonicalKey: varchar('canonical_key', { length: 512 }).notNull(),
+  canonicalId: varchar('canonical_id', { length: 255 }),
+  url: varchar('url', { length: 2048 }).notNull(),
+  title: varchar('title', { length: 512 }).notNull(),
+  rawMeta: json('raw_meta'),
+  analysis: json('analysis'),
+  status: varchar('status', { length: 32 }).notNull().default('discovered'),
+  errorMessage: varchar('error_message', { length: 1024 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+  lastSeenAt: timestamp('last_seen_at').notNull().defaultNow(),
+}, (table) => ({
+  sourceTypeIdx: index('idx_pc_source_type').on(table.sourceType),
+  statusIdx: index('idx_pc_status').on(table.status),
+  canonicalKeyUq: uniqueIndex('uq_pc_canonical_key').on(table.canonicalKey),
+}));
+
+export const proposals = mysqlTable('proposals', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  candidateId: varchar('candidate_id', { length: 36 }).notNull()
+    .references(() => proposalCandidates.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 32 }).notNull().default('pending'),
+  source: json('source').notNull(),
+  summary: text('summary').notNull(),
+  keyMessages: json('key_messages').notNull(),
+  targetAudience: varchar('target_audience', { length: 255 }),
+  difficulty: varchar('difficulty', { length: 32 }).notNull(),
+  proposedTitle: varchar('proposed_title', { length: 255 }).notNull(),
+  scriptOutline: text('script_outline').notNull(),
+  fullScriptDraft: text('full_script_draft'),
+  visualDirection: json('visual_direction').notNull(),
+  categories: json('categories').notNull(),
+  tags: json('tags').notNull(),
+  topics: json('topics').notNull(),
+  qualityScore: int('quality_score').notNull(),
+  qualityRationale: text('quality_rationale').notNull(),
+  sourceQualitySignals: json('source_quality_signals').notNull(),
+  openreelsJobId: varchar('openreels_job_id', { length: 64 }),
+  hovodAssetId: varchar('hovod_asset_id', { length: 36 }),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewedBy: varchar('reviewed_by', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+}, (table) => ({
+  statusIdx: index('idx_proposals_status').on(table.status),
+  candidateIdUq: uniqueIndex('uq_proposals_candidate_id').on(table.candidateId),
+  openreelsJobIdx: index('idx_proposals_openreels_job_id').on(table.openreelsJobId),
 }));
 
 /* ─── Auth & Organization tables ─────────────────────────── */
