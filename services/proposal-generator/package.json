@@ -1,0 +1,11 @@
+{
+  "name": "proposal-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bullmq": "^5.21.2",
+    "mysql2": "^3.11.3",
+    "nanoid": "^5.0.8"
+  }
+}

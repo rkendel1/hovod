@@ -33,6 +33,11 @@ const envSchema = z.object({
   STRIPE_PRO_PRICE_ID: z.string().optional(),
   STRIPE_BUSINESS_PRICE_ID: z.string().optional(),
   WEBHOOK_URL: z.string().url().optional(),
+  OPENREELS_API_URL: z.string().url().default('http://openreels-api:3000'),
+  OPENREELS_PUBLISHER_URL: z.string().url().default('http://openreels-hovod-publisher:3201'),
+  OPENREELS_DEFAULT_PROVIDER: z.string().default('google'),
+  PROPOSAL_REDIS_URL: z.string().default('redis://proposal-redis:6379'),
+  MAX_PROPOSALS_PER_DAY: z.coerce.number().int().min(0).default(30),
 
   /* ─── Database pool (optional — auto-detected from hardware) */
   DB_POOL_SIZE: z.coerce.number().int().min(1).optional(),

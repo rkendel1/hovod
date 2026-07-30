@@ -101,7 +101,32 @@ export const ID_LENGTH = {
   SETTINGS: 12,
   COMMENT: 16,
   REACTION: 12,
+  PROPOSAL: 16,
+  PROPOSAL_CANDIDATE: 20,
 } as const;
+
+/** Proposal pipeline statuses */
+export const PROPOSAL_STATUS = {
+  PENDING: 'pending',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  GENERATED: 'generated',
+  FAILED: 'failed',
+} as const;
+
+export type ProposalStatus = (typeof PROPOSAL_STATUS)[keyof typeof PROPOSAL_STATUS];
+
+/** Supported proposal source types */
+export const PROPOSAL_SOURCE_TYPE = {
+  BOOK: 'book',
+  PODCAST: 'podcast',
+  YOUTUBE: 'youtube',
+  COURSE: 'course',
+  ARTICLE: 'article',
+  LECTURE: 'lecture',
+} as const;
+
+export type ProposalSourceType = (typeof PROPOSAL_SOURCE_TYPE)[keyof typeof PROPOSAL_SOURCE_TYPE];
 
 /** Custom metadata limits */
 export const METADATA_LIMITS = {
