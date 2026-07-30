@@ -1,10 +1,11 @@
 FROM node:22-bookworm-slim AS base
-WORKDIR /app
+WORKDIR /app/apps/learn
 
-COPY package.json package-lock.json ./
+COPY apps/learn/package.json apps/learn/package-lock.json ./
+COPY packages/contracts /app/packages/contracts
 RUN npm ci
 
-COPY . .
+COPY apps/learn ./
 RUN npm run build
 
 EXPOSE 3000

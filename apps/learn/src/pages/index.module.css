@@ -27,6 +27,24 @@
     height: 100%;
 }
 
+.dashboard__links {
+    position: fixed;
+    right: 16px;
+    top: 16px;
+    z-index: 2;
+    display: flex;
+    gap: 8px;
+}
+
+.dashboard__link {
+    background: rgba(17, 17, 17, 0.85);
+    color: #fff;
+    border-radius: 9999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    text-decoration: none;
+}
+
 @media screen and (max-width: 1024px) {
     .app__large_screen {
         display: none;

@@ -93,11 +93,12 @@ services:
 
   learn:
     build:
-      context: ./apps/learn
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/learn/Dockerfile
     environment:
       HOVOD_API_BASE_URL: http://api:3000
       HOVOD_API_KEY: ${HOVOD_API_KEY}
+      NEXT_PUBLIC_HOVOD_DASHBOARD_URL: ${NEXT_PUBLIC_HOVOD_DASHBOARD_URL:-http://localhost:3003}
     depends_on:
       api:
         condition: service_started

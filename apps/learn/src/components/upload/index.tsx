@@ -1,6 +1,7 @@
 import React, { FC, useEffect, useRef, useState } from 'react'
 import styles from './upload.module.css'
 import { RiAddFill } from 'react-icons/ri'
+import { BFF_ROUTES, deriveAssetTitle } from '@hovod/contracts'
 
 interface IUploadProps {
     mutate: () => void
@@ -54,7 +55,7 @@ const Upload: FC<IUploadProps> = ({ mutate }): JSX.Element => {
         })
 
     const callApi = async (method: string, body: Record<string, unknown>) => {
-        const response = await fetch(`/api/videos?method=${method}`, {
+        const response = await fetch(`${BFF_ROUTES.videos}?method=${method}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -77,7 +78,7 @@ const Upload: FC<IUploadProps> = ({ mutate }): JSX.Element => {
         setIsProcessing(false)
 
         try {
-            const created = await callApi('create', { title: file.name })
+            const created = await callApi('create', { title: deriveAssetTitle('', file.name) })
             const createdVideoId = created?.data?.videoId as string
             setVideoId(createdVideoId)
 
@@ -96,7 +97,7 @@ const Upload: FC<IUploadProps> = ({ mutate }): JSX.Element => {
     }
 
     const fetchVideoStatus = async (id: string): Promise<void> => {
-        const data = await fetch(`api/videos/${id}`)
+        const data = await fetch(BFF_ROUTES.videoStatus(id))
         const status = await data.json()
 
         if (status.status === 'ready') {
