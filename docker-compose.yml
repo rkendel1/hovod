@@ -91,6 +91,64 @@ services:
     ports:
       - "3003:3001"
 
+  # OpenReels stack
+  openreels-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - openreels-redis-data:/data
+
+  openreels-api:
+    image: ghcr.io/tsensei/openreels:latest
+    restart: unless-stopped
+    env_file: .env.openreels
+    environment:
+      REDIS_URL: redis://openreels-redis:6379
+      PORT: 3000
+    volumes:
+      - openreels-output:/output
+      - openreels-jobs:/app/jobs
+    depends_on:
+      - openreels-redis
+    # ports:
+    #   - "3100:3000"
+
+  openreels-worker:
+    image: ghcr.io/tsensei/openreels:latest
+    restart: unless-stopped
+    env_file: .env.openreels
+    environment:
+      REDIS_URL: redis://openreels-redis:6379
+      SHM_SIZE: 2gb
+    shm_size: "2gb"
+    volumes:
+      - openreels-output:/output
+      - openreels-jobs:/app/jobs
+    depends_on:
+      - openreels-redis
+      - openreels-api
+    command: ["npx", "tsx", "src/worker.ts"]
+
+  openreels-hovod-publisher:
+    build:
+      context: ./services/openreels-publisher
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.openreels
+      - .env
+    environment:
+      HOVOD_BASE_URL: http://api:3000
+      HOVOD_API_KEY: ${HOVOD_API_KEY:-}
+      OPENREELS_OUTPUT_DIR: /output
+      POLL_INTERVAL_MS: 15000
+      AUTO_PROCESS: true
+    volumes:
+      - openreels-output:/output:ro
+    depends_on:
+      - openreels-api
+      - api
+
   learn:
     build:
       context: .
@@ -109,3 +167,6 @@ volumes:
   mysql-data:
   minio-data:
   uploads:
+  openreels-redis-data:
+  openreels-output:
+  openreels-jobs:

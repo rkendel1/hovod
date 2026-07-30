@@ -251,6 +251,20 @@ docker compose up -d --build
 - API: http://localhost:3002
 - MinIO Console: http://localhost:9001
 
+#### Optional: OpenReels auto-publish pipeline
+
+The compose stack also supports a co-located OpenReels pipeline:
+- `openreels-api` + `openreels-worker` generate vertical shorts
+- `openreels-hovod-publisher` watches OpenReels output and publishes finished `final.mp4` files to Hovod `/v1/assets`, then starts processing
+
+Quick start:
+
+```bash
+cp .env.openreels.example .env.openreels
+docker compose up -d --build
+docker compose logs -f openreels-hovod-publisher
+```
+
 ---
 
 ### Mode 4: Production — Full Split

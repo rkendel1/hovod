@@ -169,6 +169,27 @@ Dashboard: **http://localhost:3003** | API: **http://localhost:3002** | Learn (N
 
 Set `HOVOD_API_KEY` in `.env` so the Learn app can call Hovod via the internal Docker network.
 
+### OpenReels content pipeline
+
+Hovod can be paired with [OpenReels](https://github.com/tsensei/OpenReels) for automated short-form content generation.
+
+1. Copy `.env.openreels.example` to `.env.openreels` and fill in your keys.
+2. Start the stack:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Submit an OpenReels job (UI or API).
+4. When the job writes `final.mp4`, the `openreels-hovod-publisher` service automatically:
+   - creates a Hovod asset
+   - uploads the MP4
+   - triggers processing (HLS transcoding)
+
+Watch publisher logs:
+
+```bash
+docker compose logs -f openreels-hovod-publisher
+```
+
 ### Fly.io (Hovod + Learn)
 
 Deploy Hovod first, then deploy the Learn Next.js app that points to Hovod:
