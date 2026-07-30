@@ -1,5 +1,6 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import DesktopView from '../components/desktopView'
@@ -41,6 +42,15 @@ const Home: NextPage = () => {
                 {videos.map((video) => {
                     return <VideoComponent key={video.videoId} video={video} mutate={mutate} />
                 })}
+            </div>
+
+            <div className={styles.dashboard__links}>
+                <Link href="/dashboard/videos/new" className={styles.dashboard__link}>
+                    Upload in Dashboard
+                </Link>
+                <Link href="/dashboard/settings" className={styles.dashboard__link}>
+                    Dashboard Settings
+                </Link>
             </div>
 
             <Upload mutate={mutate} />
