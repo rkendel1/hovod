@@ -21,7 +21,7 @@ COPY packages/db/package.json packages/db/
 COPY apps/api/package.json apps/api/
 COPY apps/worker/package.json apps/worker/
 COPY apps/dashboard/package.json apps/dashboard/
-RUN npm ci
+RUN npm ci --include=dev
 
 # Copy source and build
 COPY packages packages
