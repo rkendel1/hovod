@@ -1,22 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-
-const getBaseUrl = () => (process.env.HOVOD_API_BASE_URL || 'http://api:3000').replace(/\/$/, '')
-
-const getApiKey = () => {
-    const key = process.env.HOVOD_API_KEY
-    if (!key) throw new Error('Missing HOVOD_API_KEY')
-    return key
-}
+import { forwardHovodRequest, getHovodBaseUrl } from '../../../lib/server/hovod'
 
 const getVideoStatus = async (req: NextApiRequest, res: NextApiResponse) => {
     try {
         const { videoId } = req.query
-        const baseUrl = getBaseUrl()
-        const apiKey = getApiKey()
+        const baseUrl = getHovodBaseUrl()
 
-        const response = await fetch(`${baseUrl}/v1/assets/${videoId as string}`, {
-            headers: { 'x-api-key': apiKey },
-        })
+        const response = await forwardHovodRequest(req, `/v1/assets/${videoId as string}`)
 
         const payload = await response.json()
         if (!response.ok) {

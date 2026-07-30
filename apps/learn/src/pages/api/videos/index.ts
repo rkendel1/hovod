@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import type { VideoItem, VideoMetadata } from '../../../types/video'
+import type { VideoItem, VideoMetadata } from '@hovod/contracts'
+import { deriveAssetTitle } from '@hovod/contracts'
+import { forwardHovodRequest, getHovodBaseUrl } from '../../../lib/server/hovod'
 
 interface HovodAsset {
     id: string
@@ -7,14 +9,6 @@ interface HovodAsset {
     title: string
     status: string
     customMetadata?: Record<string, string> | null
-}
-
-const getBaseUrl = () => (process.env.HOVOD_API_BASE_URL || 'http://api:3000').replace(/\/$/, '')
-
-const getApiKey = () => {
-    const key = process.env.HOVOD_API_KEY
-    if (!key) throw new Error('Missing HOVOD_API_KEY')
-    return key
 }
 
 const metadataObjectToArray = (metadata: Record<string, string> | null | undefined): VideoMetadata[] =>
@@ -47,10 +41,9 @@ const mapAsset = async (baseUrl: string, asset: HovodAsset): Promise<VideoItem> 
 })
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-    const baseUrl = getBaseUrl()
+    const baseUrl = getHovodBaseUrl()
 
     try {
-        const apiKey = getApiKey()
         const method = String(req.query.method || '').toLowerCase()
 
         if (method === 'patch') {
@@ -59,11 +52,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 return res.status(400).json({ error: 'videoId and metadata are required' })
             }
 
-            const response = await fetch(`${baseUrl}/v1/assets/${videoId}`, {
+            const response = await forwardHovodRequest(req, `/v1/assets/${videoId}`, {
                 method: 'PATCH',
                 headers: {
                     'content-type': 'application/json',
-                    'x-api-key': apiKey,
                 },
                 body: JSON.stringify({ metadata: metadataArrayToObject(metadata) }),
             })
@@ -80,13 +72,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             const { title } = req.body as { title?: string }
             if (!title) return res.status(400).json({ error: 'title is required' })
 
-            const response = await fetch(`${baseUrl}/v1/assets`, {
+            const response = await forwardHovodRequest(req, '/v1/assets', {
                 method: 'POST',
                 headers: {
                     'content-type': 'application/json',
-                    'x-api-key': apiKey,
                 },
-                body: JSON.stringify({ title }),
+                body: JSON.stringify({ title: deriveAssetTitle(title) }),
             })
 
             const payload = await response.json()
@@ -101,9 +92,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             const { videoId } = req.body as { videoId?: string }
             if (!videoId) return res.status(400).json({ error: 'videoId is required' })
 
-            const response = await fetch(`${baseUrl}/v1/assets/${videoId}/upload-url`, {
+            const response = await forwardHovodRequest(req, `/v1/assets/${videoId}/upload-url`, {
                 method: 'POST',
-                headers: { 'x-api-key': apiKey },
             })
 
             const payload = await response.json()
@@ -118,9 +108,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             const { videoId } = req.body as { videoId?: string }
             if (!videoId) return res.status(400).json({ error: 'videoId is required' })
 
-            const response = await fetch(`${baseUrl}/v1/assets/${videoId}/upload-complete`, {
+            const response = await forwardHovodRequest(req, `/v1/assets/${videoId}/upload-complete`, {
                 method: 'POST',
-                headers: { 'x-api-key': apiKey },
             })
 
             const payload = await response.json()
@@ -135,9 +124,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             const { videoId } = req.body as { videoId?: string }
             if (!videoId) return res.status(400).json({ error: 'videoId is required' })
 
-            const response = await fetch(`${baseUrl}/v1/assets/${videoId}/process`, {
+            const response = await forwardHovodRequest(req, `/v1/assets/${videoId}/process`, {
                 method: 'POST',
-                headers: { 'x-api-key': apiKey },
             })
 
             const payload = await response.json()
@@ -148,9 +136,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             return res.status(200).json({ data: payload.data })
         }
 
-        const response = await fetch(`${baseUrl}/v1/assets`, {
-            headers: { 'x-api-key': apiKey },
-        })
+        const response = await forwardHovodRequest(req, '/v1/assets')
 
         const payload = await response.json()
         if (!response.ok) {

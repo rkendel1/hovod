@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
+import { DASHBOARD_PATHS } from '@hovod/contracts'
 import DesktopView from '../components/desktopView'
 import Upload from '../components/upload'
 import VideoComponent from '../components/video/index'
@@ -16,6 +17,7 @@ interface VideosResponse {
 const Home: NextPage = () => {
     const [videos, setVideos] = useState<VideoItem[]>([])
     const { data, mutate } = useSWR<VideosResponse>('api/videos?method=get')
+    const dashboardBaseUrl = (process.env.NEXT_PUBLIC_HOVOD_DASHBOARD_URL || 'http://localhost:3003').replace(/\/$/, '')
 
     useEffect(() => {
         if (data?.data) {
@@ -45,12 +47,20 @@ const Home: NextPage = () => {
             </div>
 
             <div className={styles.dashboard__links}>
-                <Link href="/dashboard/videos/new" className={styles.dashboard__link}>
-                    Upload in Dashboard
+                <Link href="/upload" className={styles.dashboard__link}>
+                    Upload
                 </Link>
-                <Link href="/dashboard/settings" className={styles.dashboard__link}>
-                    Dashboard Settings
+                <Link href="/settings" className={styles.dashboard__link}>
+                    Settings
                 </Link>
+                <a
+                    href={`${dashboardBaseUrl}${DASHBOARD_PATHS.analytics}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.dashboard__link}
+                >
+                    Analytics
+                </a>
             </div>
 
             <Upload mutate={mutate} />
