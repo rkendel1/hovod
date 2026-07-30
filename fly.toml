@@ -1,21 +1,26 @@
-app = "hovod-learn"
-primary_region = "iad"
+# fly.toml app configuration file generated for hovod on 2026-07-30T22:46:30Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'hovod'
+primary_region = 'ams'
 
 [build]
-  dockerfile = "apps/learn/Dockerfile"
+  dockerfile = 'apps/learn/Dockerfile'
 
 [env]
-  NODE_ENV = "production"
-  HOVOD_API_BASE_URL = "http://hovod.internal:3000"
+  HOVOD_API_BASE_URL = 'http://hovod.internal:3000'
+  NODE_ENV = 'production'
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = 'shared'
   cpus = 1
   memory_mb = 512
