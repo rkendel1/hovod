@@ -91,6 +91,19 @@ services:
     ports:
       - "3003:3001"
 
+  learn:
+    build:
+      context: ./apps/learn
+      dockerfile: Dockerfile
+    environment:
+      HOVOD_API_BASE_URL: http://api:3000
+      HOVOD_API_KEY: ${HOVOD_API_KEY}
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "3004:3000"
+
 volumes:
   mysql-data:
   minio-data:
