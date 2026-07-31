@@ -4,7 +4,7 @@ module.exports = {
         browser: true,
         es2021: true,
     },
-    extends: ['prettier', 'eslint:recommended', 'plugin:react/recommended', 'plugin:@typescript-eslint/recommended'],
+    extends: ['next/core-web-vitals', 'prettier', 'eslint:recommended', 'plugin:react/recommended', 'plugin:@typescript-eslint/recommended'],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         ecmaFeatures: {
@@ -13,7 +13,12 @@ module.exports = {
         ecmaVersion: 'latest',
         sourceType: 'module',
     },
-    plugins: ['react', '@typescript-eslint'],
+    plugins: ['react', 'react-hooks', '@typescript-eslint'],
+    settings: {
+        react: {
+            version: 'detect',
+        },
+    },
     rules: {
         'react/react-in-jsx-scope': 'off',
         'no-unused-vars': 'warn',
