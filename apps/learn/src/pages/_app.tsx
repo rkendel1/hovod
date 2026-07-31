@@ -2,8 +2,8 @@ import '../styles/globals.css'
 import type { AppProps } from 'next/app'
 import { SWRConfig } from 'swr'
 
-const fetcher = async (input: RequestInfo, init: RequestInit, ...args: any[]) => {
-    const res = await fetch(input, init)
+const fetcher = async (...args: Parameters<typeof fetch>) => {
+    const res = await fetch(...args)
     return res.json()
 }
 
