@@ -43,6 +43,32 @@ Hovod is an open-source, self-hosted alternative to [Mux](https://mux.com). Uplo
 
 ---
 
+## Unified Learn Experience (`apps/learn`)
+
+On top of the video platform, the **Learn** app is one Next.js product with two role-based doors:
+
+### Front door — consumers (`role: user`)
+Land → sign up (email + password) → onboard once (pick **categories** + a **quiz retention cadence**: 1 / 3 / 7 / 14 / 30 days or Off) → get a **pushed personal stream**. The server ranks and serves the next best clips for the user's tastes and history — no catalog to hunt. After eligible completed clips, a **retention quiz** fires on the user's schedule. Consumers can **like, save, and share** clips, reach their **saved / liked / commented** library, and see a **profile** with their learning stats.
+
+Consumers never create or publish content, and never see owner routes.
+
+### Back door — owners (`role: owner`)
+A single studio: **Proposals** (curate bot-discovered ideas and push approved ones into the OpenReels factory) → **Library** (publish / unpublish / feature / tag assets, with per-clip view / like / save / share / comment analytics) → **Quiz bank** (author retention questions per asset) → **Pipeline health** (generation jobs, failures, OpenReels status).
+
+Grant the owner role by listing emails in `OWNER_EMAILS` (see [Configuration](#configuration)). The bootstrap `admin@localhost` account is an owner.
+
+### One pipeline (pushed distribution)
+```
+Discovery → Analyze → Proposal → [owner approves] → OpenReels (vertical MP4)
+   → Publisher → Hovod asset (HLS) → [owner publishes] → published pool
+   → personal ranked feed + per-user scheduled quizzes
+```
+Only owner-**published** assets enter the consumer feed. Once published, ranking pulls a clip for every user whose categories overlap — distribution is preference + publish state, never a manual per-clip subscribe.
+
+See [`docs/unified-product.md`](docs/unified-product.md) for the full data model, APIs, and acceptance criteria.
+
+---
+
 ## How It Works
 
 ```
@@ -203,21 +229,29 @@ Hovod now includes an upstream proposal pipeline for Learn:
 - `source-analyzer` (analyze queue) creates summary, key messages, categories, and quality signals
 - `proposal-generator` (propose queue) stores structured pending proposals with script + imagery direction
 
-To enable proposal-specific settings, copy `.env.proposals.example` to `.env.proposals` and edit values. The Learn app includes a proposal inbox at `http://localhost:3004/proposals` for approve/reject review. Approving a proposal creates an OpenReels job, then the existing OpenReels → Hovod publisher flow handles delivery into your library.
+To enable proposal-specific settings, copy `.env.proposals.example` to `.env.proposals` and edit values. The owner **Proposals** inbox lives in the Learn back door at `/owner/proposals` for approve/reject review. Approving a proposal creates an OpenReels job, then the OpenReels → Hovod publisher flow ingests the result as a **draft** asset the owner can publish.
 
 ### Fly.io (Hovod + Learn)
 
-Deploy Hovod first, then deploy the Learn Next.js app that points to Hovod:
+Both apps read from **one consolidated `.env`** (see [`.env.example`](.env.example)) — the same file drives the Hovod backend, the Learn front/back door, and the OpenReels pipeline. Deploy Hovod first, then the Learn Next.js app that points to it, importing the shared env into each:
 
 ```bash
-# 1) Deploy Hovod backend
-fly deploy -c fly.hovod.toml
+# 0) Fill in a single .env from the template (JWT_SECRET, S3, OWNER_EMAILS, …)
+cp .env.example .env && $EDITOR .env
 
-# 2) Deploy Learn (this is the app `fly open` should open)
-fly secrets set HOVOD_API_KEY=mk_live_... -c fly.toml
+# 1) Deploy the Hovod backend and load the shared env as secrets
+fly deploy -c fly.hovod.toml
+fly secrets import -a hovod < .env
+
+# 2) Deploy Learn (the app `fly open` should open) with the SAME env
 fly deploy -c fly.toml
+fly secrets import -a hovod < .env      # same file → both apps stay in sync
 fly open -c fly.toml
 ```
+
+> `fly secrets import` reads `KEY=value` lines from the consolidated `.env`, so every
+> service — API, worker, Learn, and OpenReels — is configured from a single source of truth.
+> Set `OWNER_EMAILS` before first signup so your account gets the owner (back door) role.
 
 ### One-Click Deploy
 
@@ -302,6 +336,7 @@ Control who can create accounts on your Hovod instance. By default, registration
 |----------|---------|-------------|
 | `REGISTRATION_ENABLED` | `true` | Set to `false` to disable new account registration |
 | `REGISTRATION_ALLOWED_DOMAINS` | — | Comma-separated list of allowed email domains (e.g. `company.com,partner.org`) |
+| `OWNER_EMAILS` | — | Comma-separated emails that receive the **owner** (back door) role on signup. Everyone else signs up as a consumer (`user`). |
 
 ```env
 # Disable all new registrations
@@ -313,6 +348,9 @@ REGISTRATION_ALLOWED_DOMAINS=company.com,partner.org
 # Both can be combined: enabled but restricted to certain domains
 REGISTRATION_ENABLED=true
 REGISTRATION_ALLOWED_DOMAINS=company.com
+
+# Platform operators — these signups become owners (see the Learn back door)
+OWNER_EMAILS=founder@company.com,ops@company.com
 ```
 
 </details>

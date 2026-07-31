@@ -15,6 +15,8 @@ declare module 'fastify' {
     userId?: string;
     /** Organization tier — 'free' | 'pro' | 'business' */
     orgTier?: string;
+    /** Platform role — 'user' | 'owner' (API keys are treated as 'owner') */
+    userRole?: string;
   }
 }
 
@@ -73,6 +75,7 @@ function resolveJwt(request: FastifyRequest, token: string): void {
   request.userId = payload.sub;
   request.orgId = payload.org;
   request.orgTier = payload.tier;
+  request.userRole = payload.role || 'user';
 }
 
 async function resolveApiKey(request: FastifyRequest, rawKey: string): Promise<void> {
@@ -92,10 +95,23 @@ async function resolveApiKey(request: FastifyRequest, rawKey: string): Promise<v
 
   request.orgId = row.orgId;
   request.orgTier = row.tier;
+  // API keys act on behalf of the organization operator — treat as owner.
+  request.userRole = 'owner';
 
   // Update last_used_at in background (fire-and-forget)
   db.update(apiKeys)
     .set({ lastUsedAt: new Date() })
     .where(eq(apiKeys.id, row.keyId))
     .catch(() => {});
+}
+
+/* ─── Owner (platform operator) guard ────────────────────── */
+
+/** Throws a 403 unless the request is authenticated as a platform owner. */
+export function assertOwner(request: FastifyRequest): void {
+  if (request.userRole !== 'owner') {
+    const err = new Error('Owner access required') as Error & { statusCode?: number };
+    err.statusCode = 403;
+    throw err;
+  }
 }

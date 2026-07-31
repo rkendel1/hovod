@@ -413,6 +413,43 @@ export async function runMigrations() {
     )
   `);
 
+  /* ─── Owner curation tables ──────────────────────────────── */
+
+  // Add role column to users if upgrading from a previous version
+  await pool.query(`
+    ALTER TABLE users ADD COLUMN role VARCHAR(16) NOT NULL DEFAULT 'user' AFTER name
+  `).catch(() => { /* column already exists */ });
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS published_assets (
+      hovod_asset_id VARCHAR(36) PRIMARY KEY,
+      status VARCHAR(16) NOT NULL DEFAULT 'draft',
+      categories JSON NOT NULL,
+      tags JSON NOT NULL,
+      featured BOOLEAN NOT NULL DEFAULT FALSE,
+      source_url VARCHAR(2048) NULL,
+      source_title VARCHAR(512) NULL,
+      proposal_id VARCHAR(36) NULL,
+      published_at TIMESTAMP NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_published_assets_status (status),
+      INDEX idx_published_assets_featured (featured),
+      CONSTRAINT fk_published_assets_asset FOREIGN KEY (hovod_asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS asset_quizzes (
+      asset_id VARCHAR(36) PRIMARY KEY,
+      questions JSON NOT NULL,
+      updated_by VARCHAR(255) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_asset_quizzes_asset FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  `);
+
 }
 
 /**
@@ -454,8 +491,8 @@ export async function bootstrapDefaultOrg(): Promise<void> {
     const tempPassword = nanoid(32);
 
     await pool.query(
-      'INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)',
-      [userId, 'admin@localhost', hashPassword(tempPassword), 'Admin'],
+      'INSERT INTO users (id, email, password_hash, name, role) VALUES (?, ?, ?, ?, ?)',
+      [userId, 'admin@localhost', hashPassword(tempPassword), 'Admin', 'owner'],
     );
 
     await pool.query(

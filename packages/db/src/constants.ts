@@ -103,6 +103,9 @@ export const ID_LENGTH = {
   REACTION: 12,
   PROPOSAL: 16,
   PROPOSAL_CANDIDATE: 20,
+  LEARN_EVENT: 16,
+  QUIZ_STATE: 12,
+  QUIZ_QUESTION: 10,
 } as const;
 
 /** Proposal pipeline statuses */
@@ -127,6 +130,37 @@ export const PROPOSAL_SOURCE_TYPE = {
 } as const;
 
 export type ProposalSourceType = (typeof PROPOSAL_SOURCE_TYPE)[keyof typeof PROPOSAL_SOURCE_TYPE];
+
+/** Published-asset lifecycle statuses (owner curation layer over Hovod assets) */
+export const PUBLISHED_STATUS = {
+  DRAFT: 'draft',
+  PUBLISHED: 'published',
+  ARCHIVED: 'archived',
+} as const;
+
+export type PublishedStatus = (typeof PUBLISHED_STATUS)[keyof typeof PUBLISHED_STATUS];
+
+/** Consumer engagement event types (per-user video events) */
+export const LEARN_EVENT = {
+  VIEW: 'view',
+  COMPLETE: 'complete',
+  SKIP: 'skip',
+  SAVE: 'save',
+  UNSAVE: 'unsave',
+  LIKE: 'like',
+  UNLIKE: 'unlike',
+  SHARE: 'share',
+  QUIZ_SHOWN: 'quiz_shown',
+  QUIZ_CORRECT: 'quiz_correct',
+  QUIZ_WRONG: 'quiz_wrong',
+} as const;
+
+export type LearnEvent = (typeof LEARN_EVENT)[keyof typeof LEARN_EVENT];
+
+/** Retention quiz cadence options (days; 0 = off) */
+export const QUIZ_PERIOD_OPTIONS = [0, 1, 3, 7, 14, 30] as const;
+
+export type QuizPeriodDays = (typeof QUIZ_PERIOD_OPTIONS)[number];
 
 /** Custom metadata limits */
 export const METADATA_LIMITS = {

@@ -1,224 +1,191 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
+import type { GetServerSideProps, NextPage } from 'next'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
-import { DASHBOARD_PATHS, DEFAULT_PLATFORM_SETTINGS } from '@hovod/contracts'
-import type { PlatformSettings } from '@hovod/contracts'
+import { useEffect, useState } from 'react'
+import AppShell from '../components/shell/AppShell'
+import { theme } from '../lib/theme'
+import { useSession } from '../lib/useSession'
+import { readSession } from '../lib/server/auth'
+
+const CATEGORY_OPTIONS = ['psychology', 'philosophy', 'history', 'science', 'ai', 'business', 'health', 'arts']
+const QUIZ_OPTIONS: { label: string; value: number }[] = [
+    { label: 'Off (no quizzes)', value: 0 },
+    { label: 'Daily', value: 1 },
+    { label: 'Every 3 days', value: 3 },
+    { label: 'Weekly', value: 7 },
+    { label: 'Biweekly', value: 14 },
+    { label: 'Monthly', value: 30 },
+]
 
 const SettingsPage: NextPage = () => {
-    const [settings, setSettings] = useState<PlatformSettings>(DEFAULT_PLATFORM_SETTINGS)
+    const { loading: sessionLoading, user } = useSession()
+    const [categories, setCategories] = useState<string[]>([])
+    const [quizPeriodDays, setQuizPeriodDays] = useState(7)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState('')
-    const [openReelsReady, setOpenReelsReady] = useState<boolean | null>(null)
-    const dashboardBaseUrl = (process.env.NEXT_PUBLIC_HOVOD_DASHBOARD_URL || 'http://localhost:3003').replace(/\/$/, '')
-    const openReelsUiUrl = process.env.NEXT_PUBLIC_OPENREELS_UI_URL || ''
-    const defaultProvider = process.env.NEXT_PUBLIC_OPENREELS_DEFAULT_PROVIDER || process.env.OPENREELS_DEFAULT_PROVIDER || 'google'
-    const defaultTts = process.env.NEXT_PUBLIC_OPENREELS_DEFAULT_TTS || process.env.OPENREELS_DEFAULT_TTS || 'elevenlabs'
-
-    const deepLinks = useMemo(
-        () => [
-            { label: 'Analytics', href: `${dashboardBaseUrl}${DASHBOARD_PATHS.analytics}` },
-            { label: 'Members', href: `${dashboardBaseUrl}${DASHBOARD_PATHS.members}` },
-            { label: 'API Keys', href: `${dashboardBaseUrl}${DASHBOARD_PATHS.apiKeys}` },
-        ],
-        [dashboardBaseUrl]
-    )
 
     useEffect(() => {
-        fetch('/api/settings')
-            .then((response) => response.json())
+        fetch('/api/me/preferences')
+            .then((r) => r.json())
             .then((payload) => {
-                if (payload?.data) setSettings(payload.data)
+                if (payload?.data) {
+                    setCategories(Array.isArray(payload.data.categories) ? payload.data.categories : [])
+                    setQuizPeriodDays(typeof payload.data.quizPeriodDays === 'number' ? payload.data.quizPeriodDays : 7)
+                }
             })
             .finally(() => setLoading(false))
     }, [])
 
-    useEffect(() => {
-        fetch('/api/generate/health')
-            .then((response) => response.json())
-            .then((payload) => setOpenReelsReady(Boolean(payload?.data?.ok)))
-            .catch(() => setOpenReelsReady(false))
-    }, [])
+    const toggleCategory = (category: string) => {
+        setCategories((current) =>
+            current.includes(category) ? current.filter((c) => c !== category) : [...current, category]
+        )
+    }
 
     const save = async () => {
+        if (categories.length < 1) {
+            setMessage('Pick at least one category')
+            return
+        }
         setSaving(true)
         setMessage('')
-        const response = await fetch('/api/settings', {
+        const response = await fetch('/api/me/preferences', {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings),
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ categories, quizPeriodDays }),
         })
-        const payload = await response.json().catch(() => ({}))
-        if (!response.ok) {
-            setSaving(false)
-            setMessage(payload?.error || 'Failed to save settings')
-            return
-        }
-
-        setSettings(payload.data)
         setSaving(false)
-        setMessage('Settings saved')
+        setMessage(response.ok ? 'Preferences saved' : 'Failed to save preferences')
     }
 
-    const onLogoChange = async (file: File) => {
-        const response = await fetch('/api/settings/logo', {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type || 'image/png' },
-            body: file,
+    const resetOnboarding = async () => {
+        setSaving(true)
+        const response = await fetch('/api/me/preferences', {
+            method: 'PATCH',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ onboardingCompleted: false }),
         })
-        const payload = await response.json().catch(() => ({}))
-        if (response.ok && payload?.data?.logoUrl) {
-            setSettings((current) => ({ ...current, logoUrl: payload.data.logoUrl }))
-            return
-        }
-        setMessage(payload?.error || 'Failed to upload logo')
+        setSaving(false)
+        if (response.ok) window.location.href = '/onboarding'
     }
 
-    const removeLogo = async () => {
-        const response = await fetch('/api/settings/logo', { method: 'DELETE' })
-        const payload = await response.json().catch(() => ({}))
-        if (response.ok) {
-            setSettings((current) => ({ ...current, logoUrl: null }))
-            return
-        }
-        setMessage(payload?.error || 'Failed to remove logo')
-    }
+    if (sessionLoading) return <main style={{ color: theme.color.text, padding: 24 }}>Loading…</main>
 
     return (
-        <main style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px 48px', color: '#fff' }}>
-            <Head>
-                <title>Learn Settings</title>
-            </Head>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h1 style={{ margin: 0, fontSize: 22 }}>Learn Settings</h1>
-                <Link href="/" style={{ color: '#a1a1aa' }}>
-                    Back to feed
-                </Link>
-            </div>
+        <AppShell title="Settings · Hovod Learn" user={user} maxWidth={720}>
+            <h1 style={{ margin: '0 0 20px', fontSize: 24 }}>Settings</h1>
 
             {loading ? (
-                <p>Loading settings...</p>
+                <p style={{ color: theme.color.textMuted }}>Loading…</p>
             ) : (
                 <>
-                    <section style={{ background: '#18181b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                        <h2 style={{ fontSize: 16, marginTop: 0 }}>Branding & defaults</h2>
-                        <label style={{ display: 'block', marginBottom: 10 }}>
-                            Primary color
-                            <input
-                                value={settings.primaryColor}
-                                onChange={(event) => setSettings((current) => ({ ...current, primaryColor: event.target.value }))}
-                                style={{ width: '100%', marginTop: 6, height: 36 }}
-                            />
-                        </label>
-
-                        <label style={{ display: 'block', marginBottom: 10 }}>
-                            Theme
-                            <select
-                                value={settings.theme}
-                                onChange={(event) =>
-                                    setSettings((current) => ({
-                                        ...current,
-                                        theme: event.target.value === 'light' ? 'light' : 'dark',
-                                    }))
-                                }
-                                style={{ width: '100%', marginTop: 6, height: 36 }}
-                            >
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
-                            </select>
-                        </label>
-
-                        <label style={{ display: 'block', marginBottom: 8 }}>
-                            <input
-                                type="checkbox"
-                                checked={settings.aiAutoTranscribe}
-                                onChange={(event) =>
-                                    setSettings((current) => ({ ...current, aiAutoTranscribe: event.target.checked }))
-                                }
-                            />{' '}
-                            Auto transcribe
-                        </label>
-                        <label style={{ display: 'block', marginBottom: 12 }}>
-                            <input
-                                type="checkbox"
-                                checked={settings.aiAutoChapter}
-                                onChange={(event) => setSettings((current) => ({ ...current, aiAutoChapter: event.target.checked }))}
-                            />{' '}
-                            Auto chapter generation
-                        </label>
-
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                                onChange={(event) => {
-                                    const file = event.target.files?.[0]
-                                    if (file) onLogoChange(file)
-                                    event.target.value = ''
-                                }}
-                            />
-                            {settings.logoUrl && (
-                                <button onClick={removeLogo} style={{ height: 30 }}>
-                                    Remove logo
-                                </button>
-                            )}
-                        </div>
-
-                        <button onClick={save} disabled={saving} style={{ marginTop: 16, height: 34, padding: '0 14px' }}>
-                            {saving ? 'Saving...' : 'Save settings'}
-                        </button>
-                        {message && <p style={{ marginTop: 8 }}>{message}</p>}
-                    </section>
-
-                    <section style={{ background: '#18181b', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                        <h2 style={{ fontSize: 16, marginTop: 0 }}>OpenReels integration</h2>
-                        <p style={{ marginTop: 0, color: openReelsReady ? '#86efac' : '#fca5a5' }}>
-                            Connection status: {openReelsReady === null ? 'Checking...' : openReelsReady ? 'Connected' : 'Unavailable'}
+                    <section style={panel}>
+                        <h2 style={{ fontSize: 16, marginTop: 0 }}>Topics</h2>
+                        <p style={{ color: theme.color.textMuted, fontSize: 14, marginTop: 0 }}>
+                            Your stream is ranked toward these categories (with a little exploration).
                         </p>
-                        <p style={{ color: '#a1a1aa', margin: '6px 0' }}>Default provider: {defaultProvider}</p>
-                        <p style={{ color: '#a1a1aa', margin: '6px 0 12px' }}>Default TTS: {defaultTts}</p>
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            <Link href="/#generate-short" style={{ color: '#fff', background: '#27272a', padding: '8px 12px', borderRadius: 999 }}>
-                                Generation history
-                            </Link>
-                            {openReelsUiUrl && (
-                                <a
-                                    href={openReelsUiUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: '#fff', background: '#27272a', padding: '8px 12px', borderRadius: 999 }}
-                                >
-                                    Open OpenReels UI
-                                </a>
-                            )}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {CATEGORY_OPTIONS.map((category) => {
+                                const selected = categories.includes(category)
+                                return (
+                                    <button
+                                        key={category}
+                                        type="button"
+                                        onClick={() => toggleCategory(category)}
+                                        aria-pressed={selected}
+                                        style={{
+                                            borderRadius: theme.radius.pill,
+                                            border: `1px solid ${selected ? theme.color.primary : theme.color.border}`,
+                                            background: selected ? theme.color.primary : 'transparent',
+                                            color: selected ? theme.color.onPrimary : theme.color.textMuted,
+                                            padding: '8px 14px',
+                                            fontWeight: 600,
+                                            fontSize: 13,
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        {category}
+                                    </button>
+                                )
+                            })}
                         </div>
                     </section>
 
-                    <section style={{ background: '#18181b', borderRadius: 12, padding: 16 }}>
-                        <h2 style={{ fontSize: 16, marginTop: 0 }}>Advanced dashboard sections</h2>
-                        <p style={{ color: '#a1a1aa', marginTop: 0 }}>
-                            These areas stay in Dashboard, while upload and settings are integrated in Learn.
-                        </p>
-                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                            {deepLinks.map((item) => (
-                                <a
-                                    key={item.label}
-                                    href={item.href}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    style={{ color: '#fff', background: '#27272a', padding: '8px 12px', borderRadius: 999 }}
-                                >
-                                    {item.label}
-                                </a>
+                    <section style={panel}>
+                        <h2 style={{ fontSize: 16, marginTop: 0 }}>Quiz cadence</h2>
+                        <div style={{ display: 'grid', gap: 8 }}>
+                            {QUIZ_OPTIONS.map((option) => (
+                                <label key={option.value} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                                    <input
+                                        type="radio"
+                                        name="quiz"
+                                        checked={quizPeriodDays === option.value}
+                                        onChange={() => setQuizPeriodDays(option.value)}
+                                    />
+                                    {option.label}
+                                </label>
                             ))}
                         </div>
                     </section>
+
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <button onClick={save} disabled={saving} style={primaryButton}>
+                            {saving ? 'Saving…' : 'Save preferences'}
+                        </button>
+                        <button onClick={resetOnboarding} disabled={saving} style={ghostButton}>
+                            Re-run onboarding
+                        </button>
+                        {message && (
+                            <span style={{ fontSize: 13, color: message.includes('saved') ? theme.color.success : theme.color.danger }}>
+                                {message}
+                            </span>
+                        )}
+                    </div>
+
+                    <section style={{ ...panel, marginTop: 20 }}>
+                        <h2 style={{ fontSize: 16, marginTop: 0 }}>Account</h2>
+                        <p style={{ color: theme.color.textMuted, fontSize: 14, margin: '0 0 4px' }}>{user?.email}</p>
+                        {user?.role === 'owner' && (
+                            <Link href="/settings/hovod" style={{ color: theme.color.accent, fontSize: 14 }}>
+                                Platform settings (owner) →
+                            </Link>
+                        )}
+                    </section>
                 </>
             )}
-        </main>
+        </AppShell>
     )
+}
+
+const panel: React.CSSProperties = {
+    background: theme.color.surface,
+    border: `1px solid ${theme.color.border}`,
+    borderRadius: theme.radius.md,
+    padding: 16,
+    marginBottom: 16,
+}
+const primaryButton: React.CSSProperties = {
+    padding: '10px 18px',
+    borderRadius: theme.radius.pill,
+    border: 0,
+    background: theme.color.primary,
+    color: theme.color.onPrimary,
+    fontWeight: 600,
+    cursor: 'pointer',
+}
+const ghostButton: React.CSSProperties = {
+    padding: '10px 18px',
+    borderRadius: theme.radius.pill,
+    border: `1px solid ${theme.color.border}`,
+    background: 'transparent',
+    color: theme.color.text,
+    cursor: 'pointer',
+}
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = await readSession(context)
+    if (!session) return { redirect: { destination: '/login', permanent: false } }
+    return { props: {} }
 }
 
 export default SettingsPage

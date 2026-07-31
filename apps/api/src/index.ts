@@ -23,6 +23,7 @@ import { orgRoutes } from './routes/orgs.js';
 import { commentRoutes } from './routes/comments.js';
 import { proposalRoutes } from './routes/proposals.js';
 import { learnRoutes } from './routes/learn.js';
+import { ownerRoutes } from './routes/owner.js';
 import { scheduleAnalyticsJobs } from './queue.js';
 import { closeMetering } from './services/metering.js';
 
@@ -84,6 +85,7 @@ app.register(orgRoutes);
 app.register(commentRoutes);
 app.register(proposalRoutes);
 app.register(learnRoutes);
+app.register(ownerRoutes);
 
 /* ─── Billing routes (only when Stripe is configured) ────── */
 

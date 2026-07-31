@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { proposals, PROPOSAL_STATUS } from '@hovod/db';
 import { db } from '../db.js';
 import { env } from '../env.js';
+import { assertOwner } from '../middleware/auth.js';
+import { ensureAssetQuiz, ensurePublishedDraft, quizFromKeyMessages } from '../services/publishing.js';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -101,6 +103,23 @@ const getDiscoverQueue = () => {
   return discoverQueue;
 };
 
+/**
+ * Seed the owner curation layer for a freshly generated asset: create a draft
+ * PublishedAsset (categories/tags/source from the proposal) and an auto quiz
+ * derived from key messages. Idempotent — never overwrites owner edits.
+ */
+const seedPublishing = async (row: typeof proposals.$inferSelect, assetId: string): Promise<void> => {
+  const source = parseJson<JsonRecord>(row.source, {});
+  await ensurePublishedDraft(assetId, {
+    categories: readArray(row.categories),
+    tags: readArray(row.tags),
+    sourceUrl: typeof source.url === 'string' ? source.url : null,
+    sourceTitle: typeof source.title === 'string' ? source.title : row.proposedTitle,
+    proposalId: row.id,
+  });
+  await ensureAssetQuiz(assetId, quizFromKeyMessages(row.keyMessages));
+};
+
 const syncGeneratedStatus = async (row: typeof proposals.$inferSelect): Promise<typeof proposals.$inferSelect> => {
   if (row.status === PROPOSAL_STATUS.GENERATED || !row.openreelsJobId || row.hovodAssetId) return row;
   try {
@@ -110,6 +129,7 @@ const syncGeneratedStatus = async (row: typeof proposals.$inferSelect): Promise<
       hovodAssetId: assetId,
       status: PROPOSAL_STATUS.GENERATED,
     }).where(eq(proposals.id, row.id));
+    await seedPublishing(row, assetId).catch(() => { /* non-fatal: owner can curate manually */ });
     const [updated] = await db.select().from(proposals).where(eq(proposals.id, row.id)).limit(1);
     return updated || row;
   } catch {
@@ -119,6 +139,7 @@ const syncGeneratedStatus = async (row: typeof proposals.$inferSelect): Promise<
 
 export async function proposalRoutes(app: FastifyInstance) {
   app.get('/v1/proposals', async (request) => {
+    assertOwner(request);
     const query = listQuerySchema.parse(request.query || {});
 
     const whereStatus = query.status ? eq(proposals.status, query.status) : undefined;
@@ -137,6 +158,7 @@ export async function proposalRoutes(app: FastifyInstance) {
   });
 
   app.get<{ Params: { id: string } }>('/v1/proposals/:id', async (request, reply) => {
+    assertOwner(request);
     const [row] = await db.select().from(proposals).where(eq(proposals.id, request.params.id)).limit(1);
     if (!row) return reply.code(404).send({ error: 'Proposal not found' });
     const synced = await syncGeneratedStatus(row);
@@ -146,6 +168,7 @@ export async function proposalRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string }; Body: z.infer<typeof decisionBodySchema> }>(
     '/v1/proposals/:id/approve',
     async (request, reply) => {
+      assertOwner(request);
       const body = decisionBodySchema.parse(request.body || {});
       const [row] = await db.select().from(proposals).where(eq(proposals.id, request.params.id)).limit(1);
       if (!row) return reply.code(404).send({ error: 'Proposal not found' });
@@ -200,6 +223,7 @@ export async function proposalRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string }; Body: z.infer<typeof decisionBodySchema> }>(
     '/v1/proposals/:id/reject',
     async (request, reply) => {
+      assertOwner(request);
       const body = decisionBodySchema.parse(request.body || {});
       const [row] = await db.select().from(proposals).where(eq(proposals.id, request.params.id)).limit(1);
       if (!row) return reply.code(404).send({ error: 'Proposal not found' });
@@ -216,6 +240,7 @@ export async function proposalRoutes(app: FastifyInstance) {
   );
 
   app.post('/v1/proposals/discover', async (request: FastifyRequest, reply) => {
+    assertOwner(request);
     const queue = getDiscoverQueue();
     const proposalRows = await db.select({ createdAt: proposals.createdAt }).from(proposals);
     const rateCap = env.MAX_PROPOSALS_PER_DAY;
@@ -235,7 +260,8 @@ export async function proposalRoutes(app: FastifyInstance) {
     return { data: { queued: true, jobId: String(job.id) } };
   });
 
-  app.get('/v1/proposals/stats', async () => {
+  app.get('/v1/proposals/stats', async (request) => {
+    assertOwner(request);
     const rows = await db.select({
       status: proposals.status,
       source: proposals.source,
