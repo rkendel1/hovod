@@ -53,6 +53,7 @@ export async function authRoutes(app: FastifyInstance) {
     const userId = nanoid(ID_LENGTH.USER);
     const orgId = nanoid(ID_LENGTH.ORG);
     const memberId = nanoid(ID_LENGTH.MEMBER);
+    const role = env.OWNER_EMAILS.includes(body.email.toLowerCase()) ? 'owner' : 'user';
 
     // Ensure unique slug
     let slug = slugFromEmail(body.email);
@@ -65,6 +66,7 @@ export async function authRoutes(app: FastifyInstance) {
       email: body.email,
       passwordHash: hashPassword(body.password),
       name: body.name,
+      role,
     });
 
     // Create default organization
@@ -84,10 +86,10 @@ export async function authRoutes(app: FastifyInstance) {
       role: ORG_ROLE.OWNER,
     });
 
-    const token = signJwt({ sub: userId, org: orgId, tier: ORG_TIER.FREE }, env.JWT_SECRET);
+    const token = signJwt({ sub: userId, org: orgId, tier: ORG_TIER.FREE, role }, env.JWT_SECRET);
 
     reply.code(201);
-    return { data: { token, user: { id: userId, email: body.email, name: body.name }, org: { id: orgId, slug } } };
+    return { data: { token, user: { id: userId, email: body.email, name: body.name, role }, org: { id: orgId, slug } } };
   });
 
   /* ─── Log in ─────────────────────────────────────────────── */
@@ -109,9 +111,10 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (!membership) throw new AppError(500, 'No organization found for this account');
 
-    const token = signJwt({ sub: user.id, org: membership.orgId, tier: membership.tier }, env.JWT_SECRET);
+    const role = user.role || 'user';
+    const token = signJwt({ sub: user.id, org: membership.orgId, tier: membership.tier, role }, env.JWT_SECRET);
 
-    return { data: { token, user: { id: user.id, email: user.email, name: user.name } } };
+    return { data: { token, user: { id: user.id, email: user.email, name: user.name, role } } };
   });
 
   /* ─── Switch organization ────────────────────────────────── */
@@ -129,7 +132,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (!membership) throw new AppError(403, 'You are not a member of this organization');
 
-    const token = signJwt({ sub: request.userId, org: orgId, tier: membership.tier }, env.JWT_SECRET);
+    const token = signJwt({ sub: request.userId, org: orgId, tier: membership.tier, role: request.userRole || 'user' }, env.JWT_SECRET);
 
     return { data: { token } };
   });
@@ -138,7 +141,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.get('/v1/auth/me', async (request) => {
     if (!request.userId) throw new AppError(401, 'Authentication required');
 
-    const [user] = await db.select({ id: users.id, email: users.email, name: users.name })
+    const [user] = await db.select({ id: users.id, email: users.email, name: users.name, role: users.role })
       .from(users)
       .where(eq(users.id, request.userId))
       .limit(1);

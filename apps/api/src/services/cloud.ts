@@ -30,6 +30,8 @@ interface JwtPayload {
   sub: string;
   org: string;
   tier: string;
+  /** Platform role — 'user' | 'owner'. Optional for backward-compatible tokens. */
+  role?: string;
   iat: number;
   exp: number;
 }

@@ -1,4 +1,4 @@
-import { double, int, json, mysqlTable, text, timestamp, varchar, index, uniqueIndex } from 'drizzle-orm/mysql-core';
+import { boolean, double, int, json, mysqlTable, text, timestamp, varchar, index, uniqueIndex } from 'drizzle-orm/mysql-core';
 
 export const assets = mysqlTable('assets', {
   id: varchar('id', { length: 36 }).primaryKey(),
@@ -237,6 +237,7 @@ export const users = mysqlTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   name: varchar('name', { length: 255 }),
+  role: varchar('role', { length: 16 }).notNull().default('user'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
 });
@@ -316,3 +317,40 @@ export const userQuizState = mysqlTable('user_quiz_state', {
   userIdIdx: index('idx_user_quiz_state_user_id').on(table.userId),
   assetIdIdx: index('idx_user_quiz_state_asset_id').on(table.assetId),
 }));
+
+/* ─── Owner curation tables ──────────────────────────────── */
+
+/**
+ * Owner-facing publish/curation layer over a Hovod asset. Absence of a row
+ * means the asset has not entered the curated pool; feed eligibility is driven
+ * by `status = 'published'`.
+ */
+export const publishedAssets = mysqlTable('published_assets', {
+  hovodAssetId: varchar('hovod_asset_id', { length: 36 }).primaryKey().references(() => assets.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 16 }).notNull().default('draft'),
+  categories: json('categories').notNull(),
+  tags: json('tags').notNull(),
+  featured: boolean('featured').notNull().default(false),
+  sourceUrl: varchar('source_url', { length: 2048 }),
+  sourceTitle: varchar('source_title', { length: 512 }),
+  proposalId: varchar('proposal_id', { length: 36 }),
+  publishedAt: timestamp('published_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+}, (table) => ({
+  statusIdx: index('idx_published_assets_status').on(table.status),
+  featuredIdx: index('idx_published_assets_featured').on(table.featured),
+}));
+
+/**
+ * Per-asset quiz content (shared across all users). Scheduling is per user in
+ * `userQuizState`. `questions` is an array of
+ * { id, prompt, choices?, answer, explanation? }.
+ */
+export const assetQuizzes = mysqlTable('asset_quizzes', {
+  assetId: varchar('asset_id', { length: 36 }).primaryKey().references(() => assets.id, { onDelete: 'cascade' }),
+  questions: json('questions').notNull(),
+  updatedBy: varchar('updated_by', { length: 255 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+});

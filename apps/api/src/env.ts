@@ -26,6 +26,10 @@ const envSchema = z.object({
   REGISTRATION_ALLOWED_DOMAINS: z.string().optional().transform((v) =>
     v ? v.split(',').map((d) => d.trim().toLowerCase()).filter(Boolean) : undefined
   ),
+  /** Emails that receive the platform-operator (owner) role on signup. */
+  OWNER_EMAILS: z.string().optional().transform((v) =>
+    v ? v.split(',').map((d) => d.trim().toLowerCase()).filter(Boolean) : []
+  ),
 
   /* ─── Billing (optional — omit to disable Stripe) ────── */
   STRIPE_SECRET_KEY: z.string().optional(),

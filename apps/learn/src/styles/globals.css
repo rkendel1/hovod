@@ -1,3 +1,40 @@
+/*
+ * Hovod Learn design system
+ * A single, coherent dark palette shared by the consumer front door and the
+ * owner back door. Colors are chosen for WCAG AA contrast on dark surfaces.
+ */
+:root {
+    /* Surfaces */
+    --color-bg: #0b0b0f;
+    --color-surface: #16161b;
+    --color-surface-raised: #1f1f26;
+    --color-surface-hover: #27272e;
+    --color-border: #2e2e37;
+    --color-border-strong: #3f3f4a;
+
+    /* Text (on dark surfaces) */
+    --color-text: #f4f4f5;      /* ~15:1 on --color-bg */
+    --color-text-muted: #a1a1aa; /* ~7:1 on --color-bg */
+    --color-text-subtle: #71717a;
+
+    /* Brand + semantic */
+    --color-primary: #6366f1;
+    --color-primary-hover: #4f46e5;
+    --color-on-primary: #ffffff;
+    --color-accent: #22d3ee;
+    --color-success: #22c55e;
+    --color-warning: #f59e0b;
+    --color-danger: #ef4444;
+    --color-focus: #a5b4fc;
+
+    /* Radii + shadow */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 999px;
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
 *,
 *::before,
 *::after {
@@ -5,24 +42,62 @@
     padding: 0;
     box-sizing: inherit;
 }
-*:focus {
-    outline: none;
-}
+
 html {
     box-sizing: border-box;
-    font-size: 62.5%; /*  10px/16px = 62.5% -> 1rem = 10px */
+    font-size: 62.5%; /* 10px/16px = 62.5% -> 1rem = 10px */
 }
+
 body {
     margin: 0;
     padding: 0;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 1.4rem;
     font-weight: 400;
-    background-color: #f9f9f9;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
 }
+
 a {
     text-decoration: none;
     color: inherit;
+}
+
+/* Accessibility: visible focus for keyboard users only. */
+:focus {
+    outline: none;
+}
+:focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Respect reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* Skip-to-content link for screen-reader / keyboard users. */
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+}
+.skip-link:focus {
+    left: 8px;
+    top: 8px;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
