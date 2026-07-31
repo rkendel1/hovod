@@ -7,8 +7,10 @@ TikTok-style Next.js app integrated with Hovod.
 Set these variables for server-side API routes:
 
 - `HOVOD_API_BASE_URL` (default: `http://api:3000` in Docker Compose)
+- `HOVOD_BASE_URL` (optional fallback if `HOVOD_API_BASE_URL` is not set)
 - `HOVOD_API_KEY` (required)
 - `NEXT_PUBLIC_HOVOD_DASHBOARD_URL` (default: `http://localhost:3003`) for deep links to advanced dashboard sections
+- `NEXT_PUBLIC_OWNER_SIGNIN_BASE_URL` (optional; default: `https://hovod.fly.dev`) for owner sign-in link on signup
 
 ## Local run
 
