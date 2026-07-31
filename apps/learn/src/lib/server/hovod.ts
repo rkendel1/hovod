@@ -2,7 +2,8 @@ import type { NextApiRequest } from 'next'
 
 const API_BASE_FALLBACK = 'http://api:3000'
 
-export const getHovodBaseUrl = () => (process.env.HOVOD_API_BASE_URL || API_BASE_FALLBACK).replace(/\/$/, '')
+export const getHovodBaseUrl = () =>
+    (process.env.HOVOD_API_BASE_URL || process.env.HOVOD_BASE_URL || API_BASE_FALLBACK).replace(/\/$/, '')
 
 const getApiKey = () => {
     const key = process.env.HOVOD_API_KEY
