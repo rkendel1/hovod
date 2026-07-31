@@ -1,14 +1,13 @@
 import styles from './footer.module.css'
 import { RiMusic2Fill } from 'react-icons/ri'
 import Marquee from 'react-fast-marquee'
-import { FC } from 'react'
 import type { VideoItem } from '../../types/video'
 
-export interface ISidebarProps {
+export interface FooterProps {
     video: VideoItem
 }
 
-const Footer: FC<ISidebarProps> = ({ video }): JSX.Element => {
+const Footer = ({ video }: FooterProps) => {
     return (
         <div className={styles.videoFooter}>
             <div className={styles.videoFooter__text}>

@@ -3,7 +3,7 @@ import { RiShareForwardFill } from 'react-icons/ri'
 import styles from './sidebar.module.css'
 import Image from 'next/image'
 import ApiVideoLogo from '../../../public/logo-white.svg'
-import { FC, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { onShare } from '../../utils/share'
 import 'animate.css'
 import { getSocialResults } from '../../utils/socialResults'
@@ -14,7 +14,7 @@ export interface ISidebarProps {
     mutate: () => void
 }
 
-const Sidebar: FC<ISidebarProps> = ({ video, mutate }): JSX.Element => {
+const Sidebar = ({ video, mutate }: ISidebarProps) => {
     const [likes, setLikes] = useState(0)
     const [bookmarks, setBookmarks] = useState(0)
 
@@ -41,6 +41,14 @@ const Sidebar: FC<ISidebarProps> = ({ video, mutate }): JSX.Element => {
     const onPressItem = async (metadata: Array<VideoMetadata>, icon: string) => {
         if (icon === 'MdFavorite') setClickedLikes(true)
         if (icon === 'MdOutlineBookmark') setClickedBookmarks(true)
+
+        if (icon === 'MdOutlineBookmark') {
+            await fetch('/api/events', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ assetId: videoId, event: 'save' }),
+            }).catch(() => undefined)
+        }
 
         await updateVideos(metadata)
 
