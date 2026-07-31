@@ -142,8 +142,12 @@ const start = async () => {
   await runMigrations();
   await bootstrapDefaultOrg();
   try {
-    await configureBucket();
-    app.log.info('S3 bucket CORS and public policy configured');
+    const bucketConfig = await configureBucket();
+    if (bucketConfig.configured) {
+      app.log.info('S3 bucket CORS and public policy configured');
+    } else {
+      app.log.info(`S3 bucket auto-configuration skipped: ${bucketConfig.reason || 'unsupported by provider'}`);
+    }
   } catch (err) {
     app.log.warn('Failed to configure S3 bucket (non-fatal — may need manual setup): ' + (err as Error).message);
   }

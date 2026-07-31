@@ -107,33 +107,44 @@ services:
   openreels-api:
     image: ghcr.io/tsensei/openreels:latest
     restart: unless-stopped
+    entrypoint: ["npx", "tsx", "src/server.ts"]
     env_file: .env.openreels
     environment:
       REDIS_URL: redis://openreels-redis:6379
       PORT: 3000
+      JOBS_DIR: /app/jobs
     volumes:
       - openreels-output:/output
       - openreels-jobs:/app/jobs
     depends_on:
       - openreels-redis
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
     # ports:
     #   - "3100:3000"
 
   openreels-worker:
     image: ghcr.io/tsensei/openreels:latest
     restart: unless-stopped
+    entrypoint: ["npx", "tsx", "src/worker.ts"]
     env_file: .env.openreels
     environment:
       REDIS_URL: redis://openreels-redis:6379
       SHM_SIZE: 2gb
+      JOBS_DIR: /app/jobs
     shm_size: "2gb"
     volumes:
       - openreels-output:/output
       - openreels-jobs:/app/jobs
     depends_on:
-      - openreels-redis
-      - openreels-api
-    command: ["npx", "tsx", "src/worker.ts"]
+      openreels-redis:
+        condition: service_started
+      openreels-api:
+        condition: service_healthy
 
   openreels-hovod-publisher:
     build:
@@ -156,8 +167,10 @@ services:
       - openreels-output:/output:ro
       - openreels-publisher-data:/data
     depends_on:
-      - openreels-api
-      - api
+      openreels-api:
+        condition: service_healthy
+      api:
+        condition: service_started
 
   source-discovery:
     build:

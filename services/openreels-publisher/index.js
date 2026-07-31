@@ -285,6 +285,14 @@ async function pollOpenReelsCompletedJobs() {
   }
 }
 
+async function pollOpenReelsCompletedJobsSafe() {
+  try {
+    await pollOpenReelsCompletedJobs();
+  } catch (err) {
+    console.warn('[publisher] OpenReels poll failed:', err instanceof Error ? err.message : String(err));
+  }
+}
+
 function writeJson(res, statusCode, payload) {
   res.writeHead(statusCode, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
@@ -350,10 +358,10 @@ chokidar.watch(OUTPUT, { ignored: /(^|[/\\])\../, depth: 3 })
 
 setInterval(() => {
   void scanOnce();
-  void pollOpenReelsCompletedJobs();
+  void pollOpenReelsCompletedJobsSafe();
 }, POLL);
 
 startStatusServer();
 void scanOnce();
-void pollOpenReelsCompletedJobs();
+void pollOpenReelsCompletedJobsSafe();
 console.log(`[publisher] Watching ${OUTPUT} -> ${HOVOD}`);
