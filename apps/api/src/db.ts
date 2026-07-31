@@ -362,6 +362,57 @@ export async function runMigrations() {
     )
   `);
 
+  /* ─── Learn personalization tables ───────────────────────── */
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id VARCHAR(36) PRIMARY KEY,
+      categories JSON NOT NULL,
+      quiz_period_days INT NOT NULL DEFAULT 7,
+      onboarding_completed_at TIMESTAMP NULL,
+      feed_diversity DOUBLE NOT NULL DEFAULT 0.3,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      CONSTRAINT fk_user_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_video_events (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36) NOT NULL,
+      asset_id VARCHAR(36) NOT NULL,
+      event VARCHAR(32) NOT NULL,
+      watch_seconds INT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_uve_user_id (user_id),
+      INDEX idx_uve_asset_id (asset_id),
+      INDEX idx_uve_event (event),
+      INDEX idx_uve_created_at (created_at),
+      CONSTRAINT fk_uve_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_uve_asset FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_quiz_state (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36) NOT NULL,
+      asset_id VARCHAR(36) NOT NULL,
+      last_quiz_at TIMESTAMP NULL,
+      next_quiz_at TIMESTAMP NULL,
+      correct_count INT NOT NULL DEFAULT 0,
+      wrong_count INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE INDEX uq_uqs_user_asset (user_id, asset_id),
+      INDEX idx_uqs_user_id (user_id),
+      INDEX idx_uqs_asset_id (asset_id),
+      CONSTRAINT fk_uqs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      CONSTRAINT fk_uqs_asset FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  `);
+
 }
 
 /**

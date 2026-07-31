@@ -1,4 +1,4 @@
-import { int, json, mysqlTable, text, timestamp, varchar, index, uniqueIndex } from 'drizzle-orm/mysql-core';
+import { double, int, json, mysqlTable, text, timestamp, varchar, index, uniqueIndex } from 'drizzle-orm/mysql-core';
 
 export const assets = mysqlTable('assets', {
   id: varchar('id', { length: 36 }).primaryKey(),
@@ -275,4 +275,44 @@ export const apiKeys = mysqlTable('api_keys', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   orgIdIdx: index('idx_api_keys_org_id').on(table.orgId),
+}));
+
+export const userPreferences = mysqlTable('user_preferences', {
+  userId: varchar('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  categories: json('categories').notNull(),
+  quizPeriodDays: int('quiz_period_days').notNull().default(7),
+  onboardingCompletedAt: timestamp('onboarding_completed_at'),
+  feedDiversity: double('feed_diversity').notNull().default(0.3),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+});
+
+export const userVideoEvents = mysqlTable('user_video_events', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  userId: varchar('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  assetId: varchar('asset_id', { length: 36 }).notNull().references(() => assets.id, { onDelete: 'cascade' }),
+  event: varchar('event', { length: 32 }).notNull(),
+  watchSeconds: int('watch_seconds'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  userIdIdx: index('idx_user_video_events_user_id').on(table.userId),
+  assetIdIdx: index('idx_user_video_events_asset_id').on(table.assetId),
+  eventIdx: index('idx_user_video_events_event').on(table.event),
+  createdAtIdx: index('idx_user_video_events_created_at').on(table.createdAt),
+}));
+
+export const userQuizState = mysqlTable('user_quiz_state', {
+  id: varchar('id', { length: 36 }).primaryKey(),
+  userId: varchar('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  assetId: varchar('asset_id', { length: 36 }).notNull().references(() => assets.id, { onDelete: 'cascade' }),
+  lastQuizAt: timestamp('last_quiz_at'),
+  nextQuizAt: timestamp('next_quiz_at'),
+  correctCount: int('correct_count').notNull().default(0),
+  wrongCount: int('wrong_count').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().onUpdateNow(),
+}, (table) => ({
+  userAssetUq: uniqueIndex('uq_user_quiz_state_user_asset').on(table.userId, table.assetId),
+  userIdIdx: index('idx_user_quiz_state_user_id').on(table.userId),
+  assetIdIdx: index('idx_user_quiz_state_asset_id').on(table.assetId),
 }));
