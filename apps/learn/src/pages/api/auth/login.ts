@@ -22,8 +22,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
         setTokenCookie(res, payload.data.token)
         return res.status(200).json({ data: { user: payload.data.user || null } })
-    } catch (error) {
-        return res.status(500).json({ error: (error as Error).message || 'Internal server error' })
+    } catch {
+        return res.status(500).json({
+            error: 'Unable to reach auth service. Check HOVOD_API_BASE_URL (or HOVOD_BASE_URL) and HOVOD_API_KEY.',
+        })
     }
 }
 
